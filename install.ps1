@@ -91,8 +91,16 @@ if (-not $downloaded) {
 }
 
 if (-not $downloaded) {
-    Write-Host-Color "❌ Failed to download binary. Check your connection or the release link." $RED
-    Write-Host-Color "   Error details: $lastError" $RED
+    Write-Host-Color "❌ Failed to download WTF binary from GitHub Releases." $RED
+    Write-Host-Color "   Attempted download URL: $DOWNLOAD_URL" $RED
+    Write-Host-Color "   Detailed error log:" $RED
+    Write-Host-Color "   ----------------------------------------" $RED
+    Write-Host-Color "   $lastError" $RED
+    Write-Host-Color "   ----------------------------------------" $RED
+    Write-Host "💡 Troubleshooting suggestions:"
+    Write-Host "   1. Verify your internet connection."
+    Write-Host "   2. Open the download URL in your web browser to check if the release file exists."
+    Write-Host "   3. If you are behind a corporate proxy, check HTTP_PROXY/HTTPS_PROXY environment variables."
     exit 1
 }
 
@@ -103,6 +111,9 @@ try {
 }
 catch {
     Write-Host-Color "❌ Failed to extract zip archive." $RED
+    Write-Host-Color "   Archive Path: $TEMP_ZIP" $RED
+    Write-Host-Color "   Destination: $BIN_DIR" $RED
+    Write-Host-Color "   Error details: $($_.Exception.Message)" $RED
     if (Test-Path $TEMP_ZIP) { Remove-Item $TEMP_ZIP -Force }
     exit 1
 }

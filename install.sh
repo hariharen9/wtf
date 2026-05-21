@@ -76,22 +76,77 @@ mkdir -p "$BIN_DIR"
 DOWNLOAD_URL="https://github.com/hariharen9/wtf/releases/latest/download/${FILENAME}"
 TEMP_ARCHIVE="/tmp/${FILENAME}"
 
+# Disable exit-on-error temporarily to handle download failure gracefully
+set +e
+
+DOWNLOAD_SUCCESS=0
+DOWNLOAD_ERROR=""
+CURL_EXIT=""
+WGET_EXIT=""
+
 print_step "Downloading native binary for ${OS}-${ARCH}..."
 printf "   Source: %s\n" "$DOWNLOAD_URL"
 
 # Check download tools
 if command -v curl >/dev/null 2>&1; then
-  curl -fsSL "$DOWNLOAD_URL" -o "$TEMP_ARCHIVE"
+  CURL_LOG=$(mktemp)
+  curl -fsSL "$DOWNLOAD_URL" -o "$TEMP_ARCHIVE" 2>"$CURL_LOG"
+  CURL_EXIT=$?
+  if [ $CURL_EXIT -eq 0 ]; then
+    DOWNLOAD_SUCCESS=1
+  else
+    DOWNLOAD_ERROR=$(cat "$CURL_LOG")
+  fi
+  rm -f "$CURL_LOG"
 elif command -v wget >/dev/null 2>&1; then
-  wget -qO "$TEMP_ARCHIVE" "$DOWNLOAD_URL"
+  WGET_LOG=$(mktemp)
+  wget -qO "$TEMP_ARCHIVE" "$DOWNLOAD_URL" 2>"$WGET_LOG"
+  WGET_EXIT=$?
+  if [ $WGET_EXIT -eq 0 ]; then
+    DOWNLOAD_SUCCESS=1
+  else
+    DOWNLOAD_ERROR=$(cat "$WGET_LOG")
+  fi
+  rm -f "$WGET_LOG"
 else
   print_error "Could not find 'curl' or 'wget' in PATH. Please install one of them."
   exit 1
 fi
 
+if [ $DOWNLOAD_SUCCESS -ne 1 ]; then
+  print_error "Failed to download WTF binary from GitHub Releases."
+  printf "   Attempted download URL: %s\n" "$DOWNLOAD_URL"
+  printf "   Detailed error log:\n"
+  printf "   ----------------------------------------\n"
+  if [ -n "$DOWNLOAD_ERROR" ]; then
+    printf "   %s\n" "$DOWNLOAD_ERROR"
+  else
+    printf "   Tool exited with code %s (no output written to stderr).\n" "${CURL_EXIT:-$WGET_EXIT}"
+  fi
+  printf "   ----------------------------------------\n"
+  printf "💡 Troubleshooting suggestions:\n"
+  printf "   1. Verify your internet connection.\n"
+  printf "   2. Open the download URL in your web browser to check if the release file exists.\n"
+  printf "   3. If you are behind a corporate proxy, check your proxy settings.\n"
+  exit 1
+fi
+
 print_step "Extracting archive to ${BIN_DIR}..."
-tar -xzf "$TEMP_ARCHIVE" -C "$BIN_DIR"
-rm -f "$TEMP_ARCHIVE"
+TAR_LOG=$(mktemp)
+tar -xzf "$TEMP_ARCHIVE" -C "$BIN_DIR" 2>"$TAR_LOG"
+TAR_EXIT=$?
+set -e # Restore exit-on-error
+
+if [ $TAR_EXIT -ne 0 ]; then
+  TAR_ERROR=$(cat "$TAR_LOG")
+  print_error "Failed to extract tar archive."
+  printf "   Archive path: %s\n" "$TEMP_ARCHIVE"
+  printf "   Destination: %s\n" "$BIN_DIR"
+  printf "   Error details: %s\n" "$TAR_ERROR"
+  rm -f "$TAR_LOG" "$TEMP_ARCHIVE"
+  exit 1
+fi
+rm -f "$TAR_LOG" "$TEMP_ARCHIVE"
 
 # Mark binary executable
 chmod +x "$BINARY_PATH"
