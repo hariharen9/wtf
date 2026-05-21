@@ -1,0 +1,95 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache: true
+
+      - name: Run unit tests
+        run: go test -v ./...
+
+  build-artifacts:
+    name: Compile & Package Release Binaries
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache: true
+
+      - name: Make output directories
+        run: mkdir -p dist artifacts
+
+      - name: Cross-Compile Binaries
+        env:
+          CGO_ENABLED: 0
+        run: |
+          # Windows AMD64
+          GOOS=windows GOARCH=amd64 go build -ldflags "-s -w" -o dist/windows/wtf.exe main.go
+          
+          # Linux AMD64
+          GOOS=linux GOARCH=amd64 go build -ldflags "-s -w" -o dist/linux/wtf main.go
+          
+          # macOS AMD64 (Intel)
+          GOOS=darwin GOARCH=amd64 go build -ldflags "-s -w" -o dist/darwin-amd64/wtf main.go
+          
+          # macOS ARM64 (Apple Silicon)
+          GOOS=darwin GOARCH=arm64 go build -ldflags "-s -w" -o dist/darwin-arm64/wtf main.go
+
+      - name: Compress Archives
+        run: |
+          # Compress Windows ZIP
+          cd dist/windows && zip -r ../../artifacts/wtf-windows-amd64.zip wtf.exe && cd ../..
+          
+          # Compress Linux TAR
+          cd dist/linux && tar -czvf ../../artifacts/wtf-linux-amd64.tar.gz wtf && cd ../..
+          
+          # Compress macOS Intel TAR
+          cd dist/darwin-amd64 && tar -czvf ../../artifacts/wtf-darwin-amd64.tar.gz wtf && cd ../..
+          
+          # Compress macOS Apple Silicon TAR
+          cd dist/darwin-arm64 && tar -czvf ../../artifacts/wtf-darwin-arm64.tar.gz wtf && cd ../..
+
+      - name: Upload Build Artifacts to Workflow
+        uses: actions/upload-artifact@v4
+        with:
+          name: wtf-release-binaries
+          path: artifacts/*
+          retention-days: 7
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

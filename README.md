@@ -81,19 +81,63 @@ Run tasks or fetch files directly from your command line without launching the f
 
 ---
 
-## 🛠️ Quick Installation
+## 📦 Installation
 
-Since WTF is written in pure, CGO-free Go, you can compile and install it instantly from source with no external runtime requirements:
+WTF can be installed instantly with zero external dependencies using our high-impact custom installers:
 
-1.  Clone the repository and build:
-    ```bash
-    go build -o wtf
-    ```
-2.  Index your filesystem for the first time:
-    ```bash
-    ./wtf update
-    ```
-3.  Move the compiled binary into your system's `$PATH` (e.g., `/usr/local/bin` or a Windows Path directory) to run `wtf` from anywhere!
+### 🚀 Recommended (macOS & Linux)
+Install the optimized native binary directly into `~/.wtf/bin` via curl:
+```bash
+curl -fsSL https://raw.githubusercontent.com/hariharen9/wtf/main/install.sh | sh
+```
+
+### ⚡ Recommended (Windows)
+Install the native binary directly and automatically configure your system `PATH` via PowerShell:
+```powershell
+irm https://raw.githubusercontent.com/hariharen9/wtf/main/install.ps1 | iex
+```
+
+---
+
+### 📦 Package Managers
+
+If you prefer using your ecosystem's native packaging tools, WTF is also fully distributed across all major registries:
+
+#### 1. Homebrew (macOS & Linux)
+To install using Homebrew, tap the repository and install:
+```bash
+brew tap hariharen9/wtf
+brew install wtf
+```
+
+#### 2. npm (Node.js Ecosystem)
+To install the global CLI wrapper via npm:
+```bash
+npm install -g wtf-cli
+```
+
+#### 3. pip (Python Ecosystem)
+To install the global CLI wrapper via pip:
+```bash
+pip install wtf-cli
+```
+
+#### 4. Native Go (Compile from Source)
+If you have Go installed, you can compile and install it directly to your `$GOPATH/bin` with:
+```bash
+go install github.com/hariharen9/wtf@latest
+```
+*Make sure your local `$GOPATH/bin` (typically `~/go/bin` or `%USERPROFILE%\go\bin`) is in your system's `PATH`!*
+
+---
+
+## 🚀 Getting Started
+
+Once installed, generate your initial search database index by running:
+```bash
+wtf update
+```
+And that's it! You are ready to locate any file on your computer in sub-milliseconds.
 
 ---
 

@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=61.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wtf-cli"
+version = "1.0.0"
+description = "Where's The File? Blazing-fast interactive terminal file finder and CLI searcher."
+readme = "README.md"
+requires-python = ">=3.7"
+license = { text = "MIT" }
+authors = [
+    { name = "hariharen9" }
+]
+keywords = ["file", "search", "finder", "tui", "cli", "everything", "fzf"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Environment :: Console",
+]
+
+[project.urls]
+Homepage = "https://github.com/hariharen9/wtf"
+Bug-Tracker = "https://github.com/hariharen9/wtf/issues"
+
+[project.scripts]
+wtf = "wtf_cli.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["wtf_cli*"]

@@ -1,0 +1,35 @@
+{
+  "name": "wtf-cli",
+  "version": "1.0.0",
+  "description": "Where's The File? Blazing-fast interactive terminal file finder and CLI searcher.",
+  "main": "bin/wtf",
+  "bin": {
+    "wtf": "./bin/wtf"
+  },
+  "scripts": {
+    "postinstall": "node install.js"
+  },
+  "keywords": [
+    "file",
+    "search",
+    "finder",
+    "locate",
+    "tui",
+    "cli",
+    "everything",
+    "fzf"
+  ],
+  "author": "hariharen9",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hariharen9/wtf.git"
+  },
+  "bugs": {
+    "url": "https://github.com/hariharen9/wtf/issues"
+  },
+  "homepage": "https://github.com/hariharen9/wtf#readme",
+  "engines": {
+    "node": ">=12.0.0"
+  }
+}
