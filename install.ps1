@@ -45,15 +45,54 @@ $TEMP_ZIP = [System.IO.Path]::GetTempFileName() + ".zip"
 Write-Host-Color "🌀 Downloading native binary for Windows-x64..." $CYAN
 Write-Host "   Source: $DOWNLOAD_URL"
 
-# Download Zip file using standard .NET WebClient or HttpClient (fast and works in all PS versions)
-try {
-    $httpClient = New-Object System.Net.Http.HttpClient
-    $responseTask = $httpClient.GetByteArrayAsync($DOWNLOAD_URL)
-    $responseTask.Wait()
-    [System.IO.File]::WriteAllBytes($TEMP_ZIP, $responseTask.Result)
+# Download Zip file using a multi-method resilient download block
+[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
+
+$downloaded = $false
+$lastError = ""
+
+# Method 1: Invoke-WebRequest (Standard PS cmdlet, handles proxies and TLS perfectly)
+if (-not $downloaded) {
+    try {
+        Invoke-WebRequest -Uri $DOWNLOAD_URL -OutFile $TEMP_ZIP -UseBasicParsing -ErrorAction Stop
+        $downloaded = $true
+    }
+    catch {
+        $lastError = $_.Exception.Message
+    }
 }
-catch {
+
+# Method 2: System.Net.Http.HttpClient (.NET fallback)
+if (-not $downloaded) {
+    try {
+        $httpClient = New-Object System.Net.Http.HttpClient
+        $responseTask = $httpClient.GetByteArrayAsync($DOWNLOAD_URL)
+        $responseTask.Wait()
+        [System.IO.File]::WriteAllBytes($TEMP_ZIP, $responseTask.Result)
+        $downloaded = $true
+    }
+    catch {
+        $lastError = $_.Exception.Message
+        if ($_.Exception.InnerException) {
+            $lastError += " -> " + $_.Exception.InnerException.Message
+        }
+    }
+}
+
+# Method 3: Start-BitsTransfer (Windows BITS fallback)
+if (-not $downloaded) {
+    try {
+        Start-BitsTransfer -Source $DOWNLOAD_URL -Destination $TEMP_ZIP -ErrorAction Stop
+        $downloaded = $true
+    }
+    catch {
+        $lastError = $_.Exception.Message
+    }
+}
+
+if (-not $downloaded) {
     Write-Host-Color "❌ Failed to download binary. Check your connection or the release link." $RED
+    Write-Host-Color "   Error details: $lastError" $RED
     exit 1
 }
 
