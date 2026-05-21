@@ -1,6 +1,6 @@
 {
   "name": "wtf-cli",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "Where's The File? Blazing-fast interactive terminal file finder and CLI searcher.",
   "main": "bin/wtf",
   "bin": {

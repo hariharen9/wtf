@@ -4,7 +4,7 @@ const https = require('https');
 const { execSync } = require('child_process');
 
 const REPO = 'hariharen9/wtf';
-const VERSION = '1.0.0'; // Falls back to latest or matches npm package version
+const VERSION = '0.0.1'; // Falls back to latest or matches npm package version
 
 function getTargetAsset() {
   const platform = process.platform;
@@ -61,8 +61,8 @@ async function main() {
     const tempFile = path.join(__dirname, assetName);
     
     // Construct download URL
-    // e.g. https://github.com/hariharen9/wtf/releases/download/v1.0.0/wtf-windows-amd64.zip
-    const downloadUrl = `https://github.com/${REPO}/releases/download/v${VERSION}/${assetName}`;
+    // e.g. https://github.com/hariharen9/wtf/releases/latest/download/wtf-windows-amd64.zip
+    const downloadUrl = `https://github.com/${REPO}/releases/latest/download/${assetName}`;
 
     console.log(`🌀 Downloading WTF binary for ${process.platform}-${process.arch}...`);
     console.log(`   Source: ${downloadUrl}`);

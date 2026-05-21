@@ -20,7 +20,7 @@ Write-Host-Color " | |  | |  | |  | |_   " $GREEN
 Write-Host-Color " | |/\ |  | |  |  _|  " $GREEN
 Write-Host-Color " |  /\  |  | |  | |    " $GREEN
 Write-Host-Color " |_/  \_|  |_|  |_|    " $GREEN
-Write-Host "$([char]27)$BOLDWhere's The File? - Sub-millisecond File Locator$([char]27)$RESET`n"
+Write-Host "$([char]27)${BOLD}Where's The File? - Sub-millisecond File Locator$([char]27)$RESET`n"
 
 # Verify Architecture
 if ($env:PROCESSOR_ARCHITECTURE -ne "AMD64" -and $env:PROCESSOR_ARCHITEW6432 -ne "AMD64") {
@@ -28,7 +28,7 @@ if ($env:PROCESSOR_ARCHITECTURE -ne "AMD64" -and $env:PROCESSOR_ARCHITEW6432 -ne
     exit 1
 }
 
-$VERSION = "1.0.0"
+$VERSION = "0.0.1"
 $FILENAME = "wtf-windows-amd64.zip"
 $WTF_DIR = Join-Path $HOME ".wtf"
 $BIN_DIR = Join-Path $WTF_DIR "bin"
@@ -39,7 +39,7 @@ if (-not (Test-Path $BIN_DIR)) {
     New-Item -ItemType Directory -Path $BIN_DIR -Force | Out-Null
 }
 
-$DOWNLOAD_URL = "https://github.com/hariharen9/wtf/releases/download/v$VERSION/$FILENAME"
+$DOWNLOAD_URL = "https://github.com/hariharen9/wtf/releases/latest/download/$FILENAME"
 $TEMP_ZIP = [System.IO.Path]::GetTempFileName() + ".zip"
 
 Write-Host-Color "🌀 Downloading native binary for Windows-x64..." $CYAN

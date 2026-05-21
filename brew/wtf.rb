@@ -1,7 +1,7 @@
 class Wtf < Formula
   desc "Where's The File? Blazing-fast interactive terminal file finder and CLI searcher"
   homepage "https://github.com/hariharen9/wtf"
-  version "1.0.0"
+  version "0.0.1"
   license "MIT"
 
   if OS.mac?

@@ -43,7 +43,7 @@ OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
 ARCH="$(uname -m)"
 
 # Map OS & Arch to Release Archive Name
-VERSION="1.0.0"
+VERSION="0.0.1"
 FILENAME=""
 
 if [ "$OS" = "darwin" ]; then
@@ -73,7 +73,7 @@ BINARY_PATH="$BIN_DIR/wtf"
 mkdir -p "$BIN_DIR"
 
 # Download URL
-DOWNLOAD_URL="https://github.com/hariharen9/wtf/releases/download/v${VERSION}/${FILENAME}"
+DOWNLOAD_URL="https://github.com/hariharen9/wtf/releases/latest/download/${FILENAME}"
 TEMP_ARCHIVE="/tmp/${FILENAME}"
 
 print_step "Downloading native binary for ${OS}-${ARCH}..."

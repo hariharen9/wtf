@@ -8,7 +8,7 @@ import platform
 import subprocess
 
 REPO = "hariharen9/wtf"
-VERSION = "1.0.0"
+VERSION = "0.0.1"
 
 def get_target_details():
     system = platform.system().lower()
@@ -73,7 +73,7 @@ def main():
         os.makedirs(bin_dir, exist_ok=True)
         try:
             archive_name, is_tar = get_target_details()
-            download_url = f"https://github.com/{REPO}/releases/download/v{VERSION}/{archive_name}"
+            download_url = f"https://github.com/{REPO}/releases/latest/download/{archive_name}"
             download_and_extract(download_url, archive_name, bin_dir, is_tar)
             
             # Set executable bit on Unix-based OS
