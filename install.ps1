@@ -1,150 +1,373 @@
-# WTF Installer - Windows PowerShell
 $ErrorActionPreference = 'Stop'
+Set-StrictMode -Version Latest
 
-# Styling colors
-$RESET = "[0m"
-$BOLD = "[1m"
-$GREEN = "[32m"
-$CYAN = "[36m"
-$YELLOW = "[33m"
-$RED = "[31m"
+# =========================================================
+# CONFIG
+# =========================================================
 
-function Write-Host-Color($text, $colorEsc) {
-    Write-Host "$([char]27)$colorEsc$text$([char]27)$RESET"
+$RepoOwner = 'hariharen9'
+$RepoName  = 'wtf'
+$ToolName  = 'wtf'
+$Version   = 'latest'
+
+$InstallRoot = Join-Path $HOME '.wtf'
+$BinDir      = Join-Path $InstallRoot 'bin'
+$TempDir     = Join-Path ([System.IO.Path]::GetTempPath()) 'wtf-installer'
+
+# =========================================================
+# STYLING
+# =========================================================
+
+function Write-Info {
+    param([string]$Message)
+    Write-Host "[INFO] $Message" -ForegroundColor Cyan
 }
 
-# ASCII Logo
-Write-Host-Color "  _    _  _____  ____ " $GREEN
-Write-Host-Color " | |  | ||_   _||  __| " $GREEN
-Write-Host-Color " | |  | |  | |  | |_   " $GREEN
-Write-Host-Color " | |/\ |  | |  |  _|  " $GREEN
-Write-Host-Color " |  /\  |  | |  | |    " $GREEN
-Write-Host-Color " |_/  \_|  |_|  |_|    " $GREEN
-Write-Host "$([char]27)${BOLD}Where's The File? - Sub-millisecond File Locator$([char]27)$RESET`n"
-
-# Verify Architecture
-if ($env:PROCESSOR_ARCHITECTURE -ne "AMD64" -and $env:PROCESSOR_ARCHITEW6432 -ne "AMD64") {
-    Write-Host-Color "❌ Error: WTF only supports 64-bit Windows architecture." $RED
-    exit 1
+function Write-Success {
+    param([string]$Message)
+    Write-Host "[ OK ] $Message" -ForegroundColor Green
 }
 
-$VERSION = "0.0.1"
-$FILENAME = "wtf-windows-amd64.zip"
-$WTF_DIR = Join-Path $HOME ".wtf"
-$BIN_DIR = Join-Path $WTF_DIR "bin"
-$BINARY_PATH = Join-Path $BIN_DIR "wtf.exe"
-
-# Create target directory
-if (-not (Test-Path $BIN_DIR)) {
-    New-Item -ItemType Directory -Path $BIN_DIR -Force | Out-Null
+function Write-Warn {
+    param([string]$Message)
+    Write-Host "[WARN] $Message" -ForegroundColor Yellow
 }
 
-$DOWNLOAD_URL = "https://github.com/hariharen9/wtf/releases/latest/download/$FILENAME"
-$TEMP_ZIP = [System.IO.Path]::GetTempFileName() + ".zip"
+function Write-Err {
+    param([string]$Message)
+    Write-Host "[FAIL] $Message" -ForegroundColor Red
+}
 
-Write-Host-Color "🌀 Downloading native binary for Windows-x64..." $CYAN
-Write-Host "   Source: $DOWNLOAD_URL"
+function Show-Banner {
+    Write-Host ''
+    Write-Host '██╗    ██╗████████╗███████╗' -ForegroundColor Green
+    Write-Host '██║    ██║╚══██╔══╝██╔════╝' -ForegroundColor Green
+    Write-Host '██║ █╗ ██║   ██║   █████╗  ' -ForegroundColor Green
+    Write-Host '██║███╗██║   ██║   ██╔══╝  ' -ForegroundColor Green
+    Write-Host '╚███╔███╔╝   ██║   ██║     ' -ForegroundColor Green
+    Write-Host ' ╚══╝╚══╝    ╚═╝   ╚═╝     ' -ForegroundColor Green
+    Write-Host ''
+    Write-Host 'Where''s The File? - Native lightning-fast file search' -ForegroundColor DarkGray
+    Write-Host ''
+}
 
-# Download Zip file using a multi-method resilient download block
-[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
+# =========================================================
+# HELPERS
+# =========================================================
 
-$downloaded = $false
-$lastError = ""
+function Ensure-Directory {
+    param([string]$Path)
 
-# Method 1: Invoke-WebRequest (Standard PS cmdlet, handles proxies and TLS perfectly)
-if (-not $downloaded) {
-    try {
-        Invoke-WebRequest -Uri $DOWNLOAD_URL -OutFile $TEMP_ZIP -UseBasicParsing -ErrorAction Stop
-        $downloaded = $true
+    if (-not (Test-Path $Path)) {
+        New-Item -ItemType Directory -Path $Path -Force | Out-Null
     }
-    catch {
-        $lastError = $_.Exception.Message
-    }
 }
 
-# Method 2: System.Net.Http.HttpClient (.NET fallback)
-if (-not $downloaded) {
-    try {
-        $httpClient = New-Object System.Net.Http.HttpClient
-        $responseTask = $httpClient.GetByteArrayAsync($DOWNLOAD_URL)
-        $responseTask.Wait()
-        [System.IO.File]::WriteAllBytes($TEMP_ZIP, $responseTask.Result)
-        $downloaded = $true
+function Test-Command {
+    param([string]$Command)
+
+    return $null -ne (Get-Command $Command -ErrorAction SilentlyContinue)
+}
+
+function Get-Architecture {
+
+    # Reliable architecture detection for all Windows PowerShell versions
+
+    $arch = $env:PROCESSOR_ARCHITECTURE
+
+    # Handle WOW64
+    if ($env:PROCESSOR_ARCHITEW6432) {
+        $arch = $env:PROCESSOR_ARCHITEW6432
     }
-    catch {
-        $lastError = $_.Exception.Message
-        if ($_.Exception.InnerException) {
-            $lastError += " -> " + $_.Exception.InnerException.Message
+
+    switch ($arch.ToUpper()) {
+
+        'AMD64' {
+            return 'windows-amd64.zip'
+        }
+
+        'ARM64' {
+            return 'windows-arm64.zip'
+        }
+
+        default {
+            throw "Unsupported architecture: $arch"
         }
     }
 }
 
-# Method 3: Start-BitsTransfer (Windows BITS fallback)
-if (-not $downloaded) {
+function Get-LatestReleaseUrl {
+    param([string]$AssetName)
+
+    return "https://github.com/$RepoOwner/$RepoName/releases/latest/download/$ToolName-$AssetName"
+}
+
+function Remove-IfExists {
+    param([string]$Path)
+
+    if (Test-Path $Path) {
+        Remove-Item $Path -Force -Recurse -ErrorAction SilentlyContinue
+    }
+}
+
+function Download-File {
+    param(
+        [string]$Url,
+        [string]$Output
+    )
+
+    Write-Info "Downloading package..."
+    Write-Host "       $Url" -ForegroundColor DarkGray
+
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+
+    $methodsTried = @()
+
+    # -----------------------------------------------------
+    # Method 1: Invoke-WebRequest
+    # -----------------------------------------------------
+
     try {
-        Start-BitsTransfer -Source $DOWNLOAD_URL -Destination $TEMP_ZIP -ErrorAction Stop
-        $downloaded = $true
+        $methodsTried += 'Invoke-WebRequest'
+
+        Invoke-WebRequest `
+            -Uri $Url `
+            -OutFile $Output `
+            -UseBasicParsing `
+            -Headers @{ 'User-Agent' = 'wtf-installer' }
+
+        if ((Get-Item $Output).Length -gt 0) {
+            Write-Success 'Download completed using Invoke-WebRequest'
+            return
+        }
     }
     catch {
-        $lastError = $_.Exception.Message
+        Write-Warn "Invoke-WebRequest failed: $($_.Exception.Message)"
     }
+
+    # -----------------------------------------------------
+    # Method 2: curl.exe
+    # -----------------------------------------------------
+
+    if (Test-Command 'curl.exe') {
+        try {
+            $methodsTried += 'curl.exe'
+
+            & curl.exe -L --fail --silent --show-error $Url -o $Output
+
+            if ((Get-Item $Output).Length -gt 0) {
+                Write-Success 'Download completed using curl.exe'
+                return
+            }
+        }
+        catch {
+            Write-Warn "curl.exe failed: $($_.Exception.Message)"
+        }
+    }
+
+    # -----------------------------------------------------
+    # Method 3: BITS
+    # -----------------------------------------------------
+
+    if (Get-Command Start-BitsTransfer -ErrorAction SilentlyContinue) {
+        try {
+            $methodsTried += 'BITS'
+
+            Start-BitsTransfer -Source $Url -Destination $Output
+
+            if ((Get-Item $Output).Length -gt 0) {
+                Write-Success 'Download completed using BITS'
+                return
+            }
+        }
+        catch {
+            Write-Warn "BITS failed: $($_.Exception.Message)"
+        }
+    }
+
+    throw "All download methods failed. Methods attempted: $($methodsTried -join ', ')"
 }
 
-if (-not $downloaded) {
-    Write-Host-Color "❌ Failed to download WTF binary from GitHub Releases." $RED
-    Write-Host-Color "   Attempted download URL: $DOWNLOAD_URL" $RED
-    Write-Host-Color "   Detailed error log:" $RED
-    Write-Host-Color "   ----------------------------------------" $RED
-    Write-Host-Color "   $lastError" $RED
-    Write-Host-Color "   ----------------------------------------" $RED
-    Write-Host "💡 Troubleshooting suggestions:"
-    Write-Host "   1. Verify your internet connection."
-    Write-Host "   2. Open the download URL in your web browser to check if the release file exists."
-    Write-Host "   3. If you are behind a corporate proxy, check HTTP_PROXY/HTTPS_PROXY environment variables."
-    exit 1
+function Add-ToPath {
+    param([string]$PathToAdd)
+
+    $CurrentUserPath = [Environment]::GetEnvironmentVariable('Path', 'User')
+
+    $PathItems = @()
+
+    if ($CurrentUserPath) {
+        $PathItems = $CurrentUserPath.Split(';')
+    }
+
+    $AlreadyExists = $false
+
+    foreach ($item in $PathItems) {
+        if ($item.TrimEnd('\\') -ieq $PathToAdd.TrimEnd('\\')) {
+            $AlreadyExists = $true
+            break
+        }
+    }
+
+    if ($AlreadyExists) {
+        Write-Success 'PATH already contains WTF binary directory'
+        return
+    }
+
+    Write-Info 'Adding WTF to user PATH...'
+
+    $NewPath = ($PathItems + $PathToAdd | Where-Object { $_ -and $_.Trim() -ne '' }) -join ';'
+
+    [Environment]::SetEnvironmentVariable('Path', $NewPath, 'User')
+
+    # Update current session immediately
+    $env:Path += ";$PathToAdd"
+
+    Write-Success 'PATH updated successfully'
 }
 
-Write-Host-Color "📦 Extracting archive to $BIN_DIR..." $CYAN
+function Test-Admin {
+    $currentIdentity = [Security.Principal.WindowsIdentity]::GetCurrent()
+    $principal = New-Object Security.Principal.WindowsPrincipal($currentIdentity)
+
+    return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+
+# =========================================================
+# MAIN
+# =========================================================
+
 try {
-    Expand-Archive -Path $TEMP_ZIP -DestinationPath $BIN_DIR -Force
-    Remove-Item $TEMP_ZIP -Force
+    Clear-Host
+    # Show-Banner
+
+    Write-Info 'Preparing installer environment...'
+
+    Ensure-Directory $InstallRoot
+    Ensure-Directory $BinDir
+    Ensure-Directory $TempDir
+
+    if (Test-Admin) {
+        Write-Info 'Running with Administrator privileges'
+    }
+    else {
+        Write-Warn 'Not running as Administrator (this is okay for user install)'
+    }
+
+    # -----------------------------------------------------
+    # Detect architecture
+    # -----------------------------------------------------
+
+    $AssetName = Get-Architecture
+
+    Write-Info "Detected package: $AssetName"
+
+    $DownloadUrl = Get-LatestReleaseUrl -AssetName $AssetName
+
+    # -----------------------------------------------------
+    # Download
+    # -----------------------------------------------------
+
+    $ZipPath = Join-Path $TempDir 'wtf.zip'
+
+    Remove-IfExists $ZipPath
+
+    Download-File -Url $DownloadUrl -Output $ZipPath
+
+    if (-not (Test-Path $ZipPath)) {
+        throw 'Downloaded ZIP file not found'
+    }
+
+    $ZipSize = [Math]::Round((Get-Item $ZipPath).Length / 1MB, 2)
+    Write-Info "Downloaded archive size: ${ZipSize} MB"
+
+    # -----------------------------------------------------
+    # Extract
+    # -----------------------------------------------------
+
+    Write-Info 'Extracting package...'
+
+    try {
+        Expand-Archive -Path $ZipPath -DestinationPath $BinDir -Force
+    }
+    catch {
+        throw "Extraction failed: $($_.Exception.Message)"
+    }
+
+    # -----------------------------------------------------
+    # Validate install
+    # -----------------------------------------------------
+
+    $ExePath = Join-Path $BinDir 'wtf.exe'
+
+    if (-not (Test-Path $ExePath)) {
+        throw 'wtf.exe was not found after extraction'
+    }
+
+    Write-Success 'Binary extracted successfully'
+
+    # -----------------------------------------------------
+    # PATH setup
+    # -----------------------------------------------------
+
+    Add-ToPath -PathToAdd $BinDir
+
+    # -----------------------------------------------------
+    # Cleanup
+    # -----------------------------------------------------
+
+    Remove-IfExists $TempDir
+
+    # -----------------------------------------------------
+    # Final output
+    # -----------------------------------------------------
+
+    Write-Host ''
+    Write-Success 'WTF installed successfully!'
+    Write-Host ''
+
+    Write-Host 'Installation Directory:' -ForegroundColor Cyan
+    Write-Host "  $InstallRoot"
+    Write-Host ''
+
+    Write-Host 'Binary:' -ForegroundColor Cyan
+    Write-Host "  $ExePath"
+    Write-Host ''
+
+    Write-Host 'Next Steps:' -ForegroundColor Green
+    Write-Host '  1. Restart your terminal'
+    Write-Host '  2. Run: wtf update'
+    Write-Host '  3. Run: wtf'
+    Write-Host ''
+
+    # -----------------------------------------------------
+    # Version check
+    # -----------------------------------------------------
+
+    try {
+        Write-Info 'Verifying installation...'
+
+        $versionOutput = & $ExePath -v 2>$null
+
+        if ($LASTEXITCODE -eq 0) {
+            Write-Success "Installed version: $versionOutput"
+        }
+    }
+    catch {
+        Write-Warn 'Installed successfully, but version verification failed'
+    }
 }
 catch {
-    Write-Host-Color "❌ Failed to extract zip archive." $RED
-    Write-Host-Color "   Archive Path: $TEMP_ZIP" $RED
-    Write-Host-Color "   Destination: $BIN_DIR" $RED
-    Write-Host-Color "   Error details: $($_.Exception.Message)" $RED
-    if (Test-Path $TEMP_ZIP) { Remove-Item $TEMP_ZIP -Force }
+    Write-Host ''
+    Write-Err $_.Exception.Message
+    Write-Host ''
+
+    Write-Host 'Troubleshooting:' -ForegroundColor Yellow
+    Write-Host '  • Ensure internet access is available'
+    Write-Host '  • Ensure GitHub is reachable'
+    Write-Host '  • Try running PowerShell as Administrator'
+    Write-Host '  • Check antivirus or Defender restrictions'
+    Write-Host '  • Verify the release asset exists on GitHub'
+    Write-Host ''
+
     exit 1
 }
-
-Write-Host-Color "✨ WTF has been successfully installed!" $GREEN
-
-# Check and automate PATH environment variable updates
-$userPath = [Environment]::GetEnvironmentVariable("Path", "User")
-$binDirExpanded = [System.IO.Path]::GetFullPath($BIN_DIR)
-
-if ($userPath -like "*$binDirExpanded*") {
-    Write-Host-Color "✨ WTF binary directory is already in your PATH!" $GREEN
-}
-else {
-    Write-Host-Color "⚠️  WTF binary directory is NOT yet in your PATH." $YELLOW
-    Write-Host "🌀 Automatically adding it to your User PATH variable..." -NoNewline
-    try {
-        $newUserPath = $userPath + ";" + $binDirExpanded
-        [Environment]::SetEnvironmentVariable("Path", $newUserPath, "User")
-        $env:Path += ";" + $binDirExpanded
-        Write-Host-Color " Done!" $GREEN
-    }
-    catch {
-        Write-Host-Color " Failed!" $RED
-        Write-Host "Please add the directory manually to your PATH environment variable:"
-        Write-Host "   Directory: $binDirExpanded"
-    }
-}
-
-Write-Host "`n⚡ Next Steps:"
-Write-Host-Color "  1. Restart your terminal (so the new PATH environment takes full effect)." $GREEN
-Write-Host-Color "  2. Run 'wtf update' to index your filesystem." $GREEN
-Write-Host-Color "  3. Run 'wtf' to launch the gorgeous interactive finder!" $GREEN
-Write-Host ""
