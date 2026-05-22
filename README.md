@@ -1,8 +1,14 @@
 # ⚡ WTF — Where's The File?
 
-[![Go Version](https://img.shields.io/badge/Go-1.26+-00ADD8?style=for-the-badge&logo=go&logoColor=white)](https://golang.org)
-[![Platform Support](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-8A2BE2?style=for-the-badge)](https://github.com)
-[![Built with Bubble Tea](https://img.shields.io/badge/Built%20With-Bubble%20Tea-F43F5E?style=for-the-badge)](https://github.com/charmbracelet/bubbletea)
+<p align="center">
+  <a href="https://github.com/hariharen9/wtf/actions/workflows/ci.yml"><img src="https://github.com/hariharen9/wtf/actions/workflows/ci.yml/badge.svg" alt="CI Status"></a>
+  <a href="https://www.npmjs.com/package/wheretf"><img src="https://img.shields.io/npm/v/wheretf.svg?style=flat-square&color=rose" alt="NPM Version"></a>
+  <a href="https://www.npmjs.com/package/wheretf"><img src="https://img.shields.io/npm/dm/wheretf.svg?style=flat-square&color=F43F5E" alt="NPM Downloads"></a>
+  <a href="https://pypi.org/project/wheretf"><img src="https://img.shields.io/pypi/v/wheretf.svg?style=flat-square&color=emerald" alt="PyPI Version"></a>
+  <a href="https://pypi.org/project/wheretf"><img src="https://img.shields.io/pypi/pyversions/wheretf.svg?style=flat-square&color=10B981" alt="Python Support"></a>
+  <a href="https://goreportcard.com/report/github.com/hariharen9/wtf"><img src="https://goreportcard.com/badge/github.com/hariharen9/wtf?style=flat-square" alt="Go Report Card"></a>
+  <a href="https://github.com/hariharen9/wtf/blob/main/LICENSE"><img src="https://img.shields.io/github/license/hariharen9/wtf.svg?style=flat-square&color=violet" alt="License"></a>
+</p>
 
 > The insanely fast, cross-platform CLI alternative to Windows' *Everything*. Locate, copy, or open any file on your drive in milliseconds.
 
