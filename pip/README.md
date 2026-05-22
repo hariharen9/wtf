@@ -7,7 +7,7 @@ This Python package is a lightweight wrapper that automatically downloads and ca
 ## Installation
 
 ```bash
-pip install wtf-cli
+pip install wheretf
 ```
 
 ## Usage

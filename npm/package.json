@@ -1,5 +1,5 @@
 {
-  "name": "wtf-cli",
+  "name": "wheretf",
   "version": "0.0.1",
   "description": "Where's The File? Blazing-fast interactive terminal file finder and CLI searcher.",
   "main": "bin/wtf",

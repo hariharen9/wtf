@@ -93,3 +93,139 @@ jobs:
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-packages:
+    name: Publish to NPM, PyPI, and Homebrew
+    needs: build-artifacts
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: wtf-release-binaries
+          path: artifacts
+
+      - name: Extract Clean Version from Tag
+        id: get_version
+        run: |
+          TAG_VERSION=${GITHUB_REF#refs/tags/v}
+          echo "VERSION=${TAG_VERSION}" >> $GITHUB_OUTPUT
+          echo "Clean version: ${TAG_VERSION}"
+
+      - name: Sync Version Numbers in Configs
+        run: |
+          VERSION="${{ steps.get_version.outputs.VERSION }}"
+          
+          # Sync NPM package.json version
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('npm/package.json', 'utf8'));
+            pkg.version = '$VERSION';
+            fs.writeFileSync('npm/package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+          
+          # Sync PIP pyproject.toml and init version
+          sed -i "s/version = \"[^\"]*\"/version = \"$VERSION\"/g" pip/pyproject.toml
+          echo "__version__ = \"$VERSION\"" > pip/wtf_cli/__init__.py
+
+      # --- PUBLISH TO NPM ---
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Publish to NPM
+        run: |
+          cd npm
+          npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # --- PUBLISH TO PYPI ---
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Build Python Package
+        run: |
+          cd pip
+          python -m pip install --upgrade pip
+          pip install build twine
+          python -m build
+
+      - name: Publish to PyPI
+        run: |
+          cd pip
+          twine upload dist/*
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+
+      # --- PUBLISH TO HOMEBREW TAP ---
+      - name: Update and Push Homebrew Formula
+        run: |
+          VERSION="${{ steps.get_version.outputs.VERSION }}"
+          
+          # Calculate SHA256 hashes of compiled archives
+          SHA_DARWIN_ARM64=$(sha256sum artifacts/wtf-darwin-arm64.tar.gz | awk '{print $1}')
+          SHA_DARWIN_AMD64=$(sha256sum artifacts/wtf-darwin-amd64.tar.gz | awk '{print $1}')
+          SHA_LINUX_AMD64=$(sha256sum artifacts/wtf-linux-amd64.tar.gz | awk '{print $1}')
+          
+          echo "Darwin ARM64 SHA: $SHA_DARWIN_ARM64"
+          echo "Darwin AMD64 SHA: $SHA_DARWIN_AMD64"
+          echo "Linux AMD64 SHA: $SHA_LINUX_AMD64"
+          
+          # Generate clean wtf.rb brew formula dynamically
+          cat <<EOF > brew/wtf.rb
+          class Wtf < Formula
+            desc "Where's The File? Blazing-fast interactive terminal file finder and CLI searcher"
+            homepage "https://github.com/hariharen9/wtf"
+            version "$VERSION"
+            license "MIT"
+
+            if OS.mac?
+              if Hardware::CPU.arm?
+                url "https://github.com/hariharen9/wtf/releases/download/v#{version}/wtf-darwin-arm64.tar.gz"
+                sha256 "$SHA_DARWIN_ARM64"
+              else
+                url "https://github.com/hariharen9/wtf/releases/download/v#{version}/wtf-darwin-amd64.tar.gz"
+                sha256 "$SHA_DARWIN_AMD64"
+              end
+            elsif OS.linux?
+              if Hardware::CPU.intel?
+                url "https://github.com/hariharen9/wtf/releases/download/v#{version}/wtf-linux-amd64.tar.gz"
+                sha256 "$SHA_LINUX_AMD64"
+              end
+            end
+
+            def install
+              bin.install "wtf"
+            end
+
+            test do
+              assert_match "wtf version #{version}", shell_output("#{bin}/wtf -v")
+            end
+          end
+          EOF
+
+          # Configure git
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          
+          # Clone custom Homebrew Tap repository
+          git clone https://x-access-token:${{ secrets.TAP_GITHUB_TOKEN }}@github.com/hariharen9/homebrew-tap.git homebrew-tap
+          
+          # Copy formula to tap repo and push
+          mkdir -p homebrew-tap/Formula
+          cp brew/wtf.rb homebrew-tap/Formula/wtf.rb
+          
+          cd homebrew-tap
+          git add Formula/wtf.rb
+          git commit -m "Update wtf Formula to v$VERSION" || echo "No changes to commit"
+          git push origin main || echo "Failed to push to Homebrew Tap"

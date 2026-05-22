@@ -899,12 +899,12 @@
 
         <div class="glass rounded-2xl p-5 reveal" style="transition-delay:.08s">
           <div class="flex items-center gap-2 mb-3"><i data-lucide="box" class="w-4 h-4" style="color:#F43F5E"></i><span class="font-outfit font-semibold text-sm text-zinc-200">npm</span></div>
-          <div class="rounded-xl p-4 font-mono text-xs text-zinc-300" style="background:#0a0a0e">npm install -g wtf-cli</div>
+          <div class="rounded-xl p-4 font-mono text-xs text-zinc-300" style="background:#0a0a0e">npm install -g wheretf</div>
         </div>
 
         <div class="glass rounded-2xl p-5 reveal" style="transition-delay:.12s">
           <div class="flex items-center gap-2 mb-3"><i data-lucide="package" class="w-4 h-4" style="color:#10B981"></i><span class="font-outfit font-semibold text-sm text-zinc-200">pip</span></div>
-          <div class="rounded-xl p-4 font-mono text-xs text-zinc-300" style="background:#0a0a0e">pip install wtf-cli</div>
+          <div class="rounded-xl p-4 font-mono text-xs text-zinc-300" style="background:#0a0a0e">pip install wheretf</div>
         </div>
 
         <div class="glass rounded-2xl p-5 reveal" style="transition-delay:.16s">
@@ -1004,8 +1004,8 @@
   const TABS = {
     curl: { cmd:'curl -fsSL https://raw.githubusercontent.com/hariharen9/wtf/main/install.sh | sh',      hint:'Installs to ~/.wtf/bin · Auto-updates shell PATH · macOS & Linux' },
     ps:   { cmd:'irm https://raw.githubusercontent.com/hariharen9/wtf/main/install.ps1 | iex',           hint:'Downloads binary → $HOME\\.wtf\\bin · Updates registry PATH automatically' },
-    npm:  { cmd:'npm install -g wtf-cli',                                                                  hint:'Node.js 14+ · postinstall auto-downloads native binary' },
-    pip:  { cmd:'pip install wtf-cli',                                                                    hint:'Python 3.8+ · Lazy-downloads binary on first run · os.execv overlay on Unix' },
+    npm:  { cmd:'npm install -g wheretf',                                                                  hint:'Node.js 14+ · postinstall auto-downloads native binary' },
+    pip:  { cmd:'pip install wheretf',                                                                    hint:'Python 3.8+ · Lazy-downloads binary on first run · os.execv overlay on Unix' },
     brew: { cmd:'brew tap hariharen9/wtf && brew install wtf',                                           hint:'Homebrew tap · Managed by brew upgrade · native binary' },
     go:   { cmd:'go install github.com/hariharen9/wtf@latest',                                          hint:'Go 1.22+ · Installs to $GOPATH/bin · Always latest' },
   };

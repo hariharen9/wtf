@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "wtf-cli"
+name = "wheretf"
 version = "0.0.1"
 description = "Where's The File? Blazing-fast interactive terminal file finder and CLI searcher."
 readme = "README.md"

@@ -10,7 +10,7 @@ const binaryPath = path.join(__dirname, binaryName);
 
 if (!fs.existsSync(binaryPath)) {
   console.error(`❌ WTF binary is missing from: ${binaryPath}`);
-  console.error('   Please run "npm rebuild wtf-cli" or build it manually in the package folder: "go build -o bin/wtf main.go"');
+  console.error('   Please run "npm rebuild wheretf" or build it manually in the package folder: "go build -o bin/wtf main.go"');
   process.exit(1);
 }
 

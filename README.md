@@ -113,13 +113,13 @@ brew install wtf
 #### 2. npm (Node.js Ecosystem)
 To install the global CLI wrapper via npm:
 ```bash
-npm install -g wtf-cli
+npm install -g wheretf
 ```
 
 #### 3. pip (Python Ecosystem)
 To install the global CLI wrapper via pip:
 ```bash
-pip install wtf-cli
+pip install wheretf
 ```
 
 #### 4. Native Go (Compile from Source)
